@@ -105,6 +105,12 @@
       aspect-ratio: 3/4;
       perspective: 800px;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      /* убирает вспышку от тапа */
+      user-select: none;
+      /* убирает выделение текста при зажатии */
+      -webkit-user-select: none;
+      /* то же самое для Safari/iOS */
     }
 
     .card-inner {
