@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Найди пару 💝</title>
+  <style>
+    :root {
+      --pink: #e8b4bc;
+      --pink-dark: #c98a95;
+      --cream: #fdf6f0;
+      --gold: #d4af7a;
+      --text: #4a3439;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--cream), #f5e6da);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 12px 60px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      opacity: 0.75;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+
+    /* ---- date gate ---- */
+    #gate {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 15vh;
+      text-align: center;
+      max-width: 340px;
+    }
+
+    #gate input {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--pink-dark);
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    #gate button,
+    .btn {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 20px;
+      background: var(--pink-dark);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #gate button:hover,
+    .btn:hover {
+      background: var(--pink);
+    }
+
+    #hint {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      min-height: 20px;
+    }
+
+    /* ---- game board ---- */
+    #game {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .card {
+      aspect-ratio: 3/4;
+      perspective: 800px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform .5s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .back {
+      background: linear-gradient(145deg, var(--pink-dark), var(--gold));
+      color: white;
+      font-size: 1.6rem;
+    }
+
+    .front {
+      transform: rotateY(180deg);
+      background: white;
+      border: 2px solid var(--pink);
+    }
+
+    .front img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card.matched .front {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+    }
+
+    .card.locked {
+      cursor: not-allowed;
+      filter: grayscale(0.3) brightness(0.9);
+    }
+
+    #progress {
+      margin: 16px 0;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    /* ---- final modal ---- */
+    #modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(74, 52, 57, 0.85);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    #modal .box {
+      background: var(--cream);
+      border-radius: 18px;
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 360px;
+    }
+
+    #modal .box h2 {
+      margin-top: 0;
+    }
+
+    #modal .box p {
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .gift-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .confetti {
+      position: fixed;
+      top: -10px;
+      font-size: 1.4rem;
+      animation: fall linear forwards;
+      z-index: 200;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(105vh) rotate(360deg);
+        opacity: 0.3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== ШАГ 1: проверка даты ===== -->
+  <div id="gate">
+    <h1>Прежде чем начать... 💌</h1>
+    <p class="subtitle">Введи дату нашего первого свидания</p>
+    <input type="text" id="dateInput" placeholder="Введите дату">
+    <button onclick="checkDate()">Проверить</button>
+    <div id="hint"></div>
+  </div>
+
+  <!-- ===== ШАГ 2: игра ===== -->
+  <div id="game">
+    <h1>Найди пару 💝</h1>
+    <p class="subtitle">Открой все наши воспоминания — и в конце тебя ждёт сюрприз</p>
+    <div id="progress"></div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <!-- ===== финальное окно ===== -->
+  <div id="modal">
+    <div class="box">
+      <div class="gift-icon">🎁</div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalText"></p>
+      <button class="btn" id="modalBtn" style="display:none;">Дальше →</button>
+    </div>
+  </div>
+
+  <!-- фоновая музыка: замени путь на свой файл -->
+  <audio id="bgMusic" src="./mus.mp3" loop></audio>
+
+  <script>
+    /* ============================================================
+       НАСТРОЙКИ — редактируй здесь
+       ============================================================ */
+
+    // !!! ПРАВИЛЬНЫЙ ОТВЕТ. Можно оставить несколько принятых форматов.
+    const CORRECT_DATES = [
+      "14.08.2026",
+      "14.08.26",
+      "14/08/2026",
+      "14 августа",
+      "14 августа 2026",
+      "14августа2026" // на случай если введёт без пробелов
+    ];
+    // Путь к иконке подарка (можно оставить эмодзи вместо картинки — см. renderCard)
+    const GIFT_IMAGE = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdoOFpV8eNyY8QRYwESnHHAl9SZLpdmYmm2-1z5IXQy-WmxA-ikmH778tx&s=10";
+
+    // Пары фото воспоминаний — просто добавляй/убирай строки.
+    // pairId должен быть уникальным для каждой пары.
+    const PHOTO_PAIRS = [
+      { pairId: 1, img: "./f1.jpg" },
+      { pairId: 2, img: "./f2.jpg" },
+      { pairId: 3, img: "./f3.jpg" },
+      { pairId: 4, img: "./f4.jpg" },
+      { pairId: 5, img: "./f5.jpg" },
+      { pairId: 6, img: "./f6.jpg" },
+      { pairId: 7, img: "./f7.jpg" },
+      { pairId: 8, img: "./f8.jpg" },
+      { pairId: 9, img: "./f9.jpg" },
+      { pairId: 10, img: "./f10.jpg" },
+      { pairId: 11, img: "./f11.jpg" },
+    ];
+    // Итого: 11 обычных пар + 1 пара-подарок = 12 пар = 24 карточки (сетка 4x6)
+
+    const GIFT_PAIR_ID = "GIFT";
+
+    /* ============================================================ */
+
+    function checkDate() {
+      const val = document.getElementById('dateInput').value.trim().toLowerCase();
+      const ok = CORRECT_DATES.some(d => d.toLowerCase() === val);
+      if (ok) {
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('game').style.display = 'flex';
+        initGame();
+      } else {
+        document.getElementById('hint').textContent = "Хм, не то... попробуй ещё раз 😉";
+      }
+    }
+    document.getElementById('dateInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkDate();
+    });
+
+    let deck = [];
+    let flippedCards = [];
+    let matchedPairIds = new Set();
+    let lock = false;
+    let musicStarted = false;
+    const TOTAL_PAIRS = PHOTO_PAIRS.length + 1; // +1 для подарка
+
+    function initGame() {
+      deck = [];
+      PHOTO_PAIRS.forEach(p => {
+        deck.push({ pairId: p.pairId, img: p.img });
+        deck.push({ pairId: p.pairId, img: p.img });
+      });
+      deck.push({ pairId: GIFT_PAIR_ID, img: GIFT_IMAGE });
+      deck.push({ pairId: GIFT_PAIR_ID, img: GIFT_IMAGE });
+
+      // тасуем всё, КРОМЕ того что подарочная пара не должна помешать логике —
+      // она физически может оказаться где угодно на поле, но открыть её
+      // разрешим только когда все остальные пары найдены (см. onCardClick)
+      shuffle(deck);
+
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      deck.forEach((card, index) => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.dataset.index = index;
+        el.innerHTML = `
+      <div class="card-inner">
+        <div class="face back">✦</div>
+        <div class="face front"><img src="${card.img}" alt=""></div>
+      </div>`;
+        el.addEventListener('click', () => onCardClick(el, card, index));
+        board.appendChild(el);
+      });
+      updateProgress();
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function onCardClick(el, card, index) {
+      if (lock) return;
+      if (el.classList.contains('flipped') || el.classList.contains('matched')) return;
+
+      // подарочную пару нельзя открыть, пока не собраны все остальные пары
+      const otherPairsDone = matchedPairIds.size === PHOTO_PAIRS.length;
+      if (card.pairId === GIFT_PAIR_ID && !otherPairsDone) {
+        el.classList.add('locked');
+        setTimeout(() => el.classList.remove('locked'), 400);
+        return;
+      }
+
+      el.classList.add('flipped');
+      flippedCards.push({ el, card, index });
+
+      maybeStartMusic();
+
+      if (flippedCards.length === 2) {
+        lock = true;
+        const [a, b] = flippedCards;
+        if (a.card.pairId === b.card.pairId) {
+          setTimeout(() => {
+            a.el.classList.add('matched');
+            b.el.classList.add('matched');
+            matchedPairIds.add(a.card.pairId);
+            flippedCards = [];
+            lock = false;
+            updateProgress();
+            if (a.card.pairId === GIFT_PAIR_ID) {
+              onGiftFound();
+            }
+          }, 500);
+        } else {
+          setTimeout(() => {
+            a.el.classList.remove('flipped');
+            b.el.classList.remove('flipped');
+            flippedCards = [];
+            lock = false;
+          }, 800);
+        }
+      }
+    }
+
+    function updateProgress() {
+      const closed = deck.length - matchedPairIds.size * 2;
+      document.getElementById('progress').textContent =
+        `Найдено пар: ${matchedPairIds.size} / ${TOTAL_PAIRS}`;
+
+      // когда на поле остаётся 4 закрытые карточки — запускаем музыку
+      if (closed <= 4) {
+        maybeStartMusic();
+      }
+    }
+
+    function maybeStartMusic() {
+      if (musicStarted) return;
+      const closed = deck.length - matchedPairIds.size * 2 - flippedCards.length;
+      if (closed <= 4) {
+        musicStarted = true;
+        const audio = document.getElementById('bgMusic');
+        audio.volume = 0.6;
+        audio.play().catch(() => { /* если браузер блокирует — сработает при следующем клике */ });
+      }
+    }
+
+    function onGiftFound() {
+      setTimeout(() => {
+        launchConfetti();
+        showModalStep1();
+      }, 400);
+    }
+
+    function showModalStep1() {
+      document.getElementById('modalTitle').textContent = "Первый подарок 🎉";
+      document.getElementById('modalText').textContent =
+        "Первый подарок — это когда ты встретила меня 😄";
+      const btn = document.getElementById('modalBtn');
+      btn.style.display = 'inline-block';
+      btn.textContent = "Дальше →";
+      btn.onclick = showModalStep2;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function showModalStep2() {
+      document.getElementById('modalTitle').textContent = "Второй подарок 🎁";
+      document.getElementById('modalText').textContent =
+        "А теперь посмотри на меня и забери свой подарок 🎁";
+      document.getElementById('modalBtn').style.display = 'none';
+      launchConfetti();
+    }
+
+    function launchConfetti() {
+      const emojis = ['💖', '✨', '🎁', '💫', '🌸'];
+      for (let i = 0; i < 28; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.animationDuration = (2 + Math.random() * 2) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4500);
+      }
+    }
+  </script>
+</body>
+
+</html>
